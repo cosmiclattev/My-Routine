@@ -3419,6 +3419,10 @@ function bindTmplEditor(){
     var name = ST.tmplEditData.name.trim();
     if (!name){ showToast('템플릿 이름을 입력해주세요'); return; }
     saveTmpl(ST.tmplEditData);
+    /* 저장된 템플릿이 현재 기본 템플릿이면 기록 없는 모든 날짜에 즉시 반영 */
+    if(ST.tmplEditData.id === getDefaultTmplId()){
+      setDefaultTmplId(ST.tmplEditData.id);
+    }
     showToast('저장됨: '+name);
     closeTmplEditor();
     var panelEl = document.getElementById('tpanel-el');
