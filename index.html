@@ -2,6 +2,13 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#c4b0e8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Lumi✨Routine">
+<link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Lumi✨Routine</title>
 <style>
@@ -3625,6 +3632,15 @@ function closeTmplLoadPopup(){
 getTmpls();
 render();
 
+</script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js')
+      .then(function(reg){ console.log('[PWA] SW registered, scope:', reg.scope); })
+      .catch(function(err){ console.warn('[PWA] SW registration failed:', err); });
+  });
+}
 </script>
 </body>
 </html>

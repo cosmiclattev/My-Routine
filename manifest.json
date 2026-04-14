@@ -1,0 +1,27 @@
+{
+  "name": "Lumi✨Routine",
+  "short_name": "Lumi✨",
+  "description": "나만의 데일리 & 위클리 루틴 트래커",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f0edfb",
+  "theme_color": "#c4b0e8",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "productivity"]
+}
