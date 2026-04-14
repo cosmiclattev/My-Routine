@@ -1410,8 +1410,9 @@ function buildTrackerHTML(tracker){
     var rowPct=daysDone/7;
     var rr=Math.round(255-(255-195)*rowPct),rg2=Math.round(255-(255-240)*rowPct),rb=Math.round(255-(255-215)*rowPct);
     var rowBg=daysDone>0?'rgba('+rr+','+rg2+','+rb+',.38)':'';
+    var habitSetTag=!habitVal ? '<span class="tag" style="background:rgba(220,210,255,.4);color:#9070c8;border:1px solid rgba(180,170,220,.3);font-size:10px;padding:2px 5px;white-space:nowrap">설정 전</span>' : '';
     return '<tr style="background:'+rowBg+'">'+
-      '<td class="td-habit" style="padding-left:8px;background:transparent"><input type="text" class="tr-habit" data-row="'+ri+'" value="'+esc(habitVal)+'" placeholder="습관 이름…" style="font-weight:600"></td>'+
+      '<td class="td-habit" style="padding-left:8px;background:transparent;display:flex;align-items:center;gap:4px">'+habitSetTag+'<input type="text" class="tr-habit" data-row="'+ri+'" value="'+esc(habitVal)+'" placeholder="습관 이름…" style="font-weight:600;flex:1;min-width:0"></td>'+
       '<td class="td-cond"><input type="text" class="tr-over" data-row="'+ri+'" value="'+esc(overVal)+'" placeholder="목표초과"></td>'+
       '<td class="td-cond"><input type="text" class="tr-ach"  data-row="'+ri+'" value="'+esc(achVal)+'"  placeholder="목표달성"></td>'+
       '<td class="td-cond"><input type="text" class="tr-fail" data-row="'+ri+'" value="'+esc(failVal)+'" placeholder="실패"></td>'+
@@ -1437,15 +1438,19 @@ function renderWeekModal(){
   var wn=getWeekNum(ws);
 
   /* ── Goals ── */
-  var doneGoals=wData.goals.filter(function(g){return g.completed;}).length;
-  var goalBadge=doneGoals+'/'+wData.goals.length+' 완료';
+  /* 텍스트 입력된 목표만 카운트 */
+  var configuredGoals=wData.goals.filter(function(g){return g.text&&g.text.trim();});
+  var doneGoals=configuredGoals.filter(function(g){return g.completed;}).length;
+  var goalBadge=configuredGoals.length ? doneGoals+'/'+configuredGoals.length+' 완료' : '0/0 완료';
   var goalsH=wData.goals.map(function(g,i){
     var bdr=i<wData.goals.length-1?'border-bottom:1px solid rgba(180,170,220,.3)':'';
     var btnCls='btn-goal-check '+(g.completed?'on':'off');
     var decor=g.completed&&g.text?'line-through':'none';
     var col=g.completed&&g.text?'#8878b8':'#1e3a5f';
+    var goalSetTag=(!g.text||!g.text.trim()) ? '<span class="tag" style="background:rgba(220,210,255,.4);color:#9070c8;border:1px solid rgba(180,170,220,.3);font-size:10px;padding:2px 7px;flex-shrink:0">설정 전</span>' : '';
     return '<div class="goal-row" style="'+bdr+'">'+
       '<div style="font-size:12px;color:#9080d8;font-weight:800;width:16px;text-align:center;flex-shrink:0">'+(i+1)+'</div>'+
+      goalSetTag+
       '<input class="inp goal-inp" data-idx="'+i+'" type="text" value="'+esc(g.text)+'" placeholder="Goal '+(i+1)+'…" style="flex:1;padding:7px 10px;font-size:13px;text-decoration:'+decor+';color:'+col+'">'+
       '<button class="'+btnCls+'" data-idx="'+i+'">'+CHECK_SVG+'</button>'+
     '</div>';
@@ -1454,11 +1459,12 @@ function renderWeekModal(){
   /* ── Habit Tracker ── */
   /* 전체 습관 수: 이름 입력 여부 무관, 삭제하지 않은 모든 행 */
   /* 완료 기준: 7일 중 하나라도 ⭕(1) 또는 ❤️(2)면 완료로 카운트 */
-  var habitTotal=(wData.tracker||[]).length;
-  var habitDone=(wData.tracker||[]).filter(function(r){
+  /* 이름 입력된 습관만 카운트 */
+  var configuredHabits=(wData.tracker||[]).filter(function(r){return r.habit&&r.habit.trim();});
+  var habitDone=configuredHabits.filter(function(r){
     return DAY_KEYS.every(function(d){var v=normDay(r.days?r.days[d]:0);return v===1||v===2;});
   }).length;
-  var habitBadge=habitTotal ? habitDone+'/'+habitTotal+' 완료' : '0/0 완료';
+  var habitBadge=configuredHabits.length ? habitDone+'/'+configuredHabits.length+' 완료' : '0/0 완료';
   var trackerH=buildTrackerHTML(wData.tracker);
 
   /* ── Missions ── */
@@ -1468,8 +1474,9 @@ function renderWeekModal(){
     if(tgt===0)return false;
     return (m.checks||[]).filter(Boolean).length>=tgt;
   }).length;
-  var mAll=(wData.missions||[]).length||3;
-  var missBadge=mDone+'/'+mAll+' 완료';
+  var configuredMissions=(wData.missions||[]).filter(function(m){return (m.name&&m.name.trim())||(m.target&&m.target>0);});
+  var mDoneConf=configuredMissions.filter(function(m){var tgt=m.target||0;if(!tgt)return false;return (m.checks||[]).filter(Boolean).length>=tgt;}).length;
+  var missBadge=configuredMissions.length ? mDoneConf+'/'+configuredMissions.length+' 완료' : '0/0 완료';
   var missionsH='';
   (wData.missions||[]).forEach(function(m,mi){missionsH+=renderMissionCard(m,mi);});
 
@@ -1564,7 +1571,7 @@ function renderMissionCard(m,mi){
   return '<div class="mission-card" style="background:'+cardBg+'">'+
     '<div class="mission-hdr">'+
       '<span class="tag" style="'+badgeColor+';flex-shrink:0;font-size:11px;padding:3px 8px;margin-right:2px">'+badgeText+'</span>'+
-      '<input type="text" class="inp miss-name" data-mi="'+mi+'" value="'+esc(m.name)+'" placeholder="미션 이름…" style="flex:1;padding:6px 10px;font-size:13px;background:rgba(255,255,255,.6)">'+
+      '<input type="text" class="inp miss-name" data-mi="'+mi+'" value="'+esc(m.name)+'" placeholder="미션 이름 &amp; 횟수 설정하면 시작!" style="flex:1;padding:6px 10px;font-size:13px;background:rgba(255,255,255,.6)">'+
       '<div class="cnt-ctrl">'+
         '<button class="cnt-btn" data-mi="'+mi+'" data-dir="-1">&#9664;</button>'+
         '<div class="cnt-val">'+target+'</div>'+
@@ -1682,7 +1689,14 @@ function refreshMissionHeader(){
    TRACKER EVENTS
 ══════════════════════════════════ */
 function bindTrackerEvents(){
-  document.querySelectorAll('.tr-habit').forEach(function(inp){inp.oninput=function(){var ri=parseInt(this.dataset.row);ST.weekData.tracker[ri].habit=this.value;saveWeekAndSync();};});
+  document.querySelectorAll('.tr-habit').forEach(function(inp){inp.oninput=function(){
+    var ri=parseInt(this.dataset.row);
+    ST.weekData.tracker[ri].habit=this.value;
+    saveWeekAndSync();
+    /* 설정전 태그 토글 */
+    var td=this.closest('td');
+    if(td){var tag=td.querySelector('.tag');if(tag){if(this.value.trim())tag.style.display='none';else tag.style.display='';}}
+  };});
   document.querySelectorAll('.tr-over').forEach(function(inp){inp.oninput=function(){var ri=parseInt(this.dataset.row);ST.weekData.tracker[ri].over=this.value;saveWeekAndSync();};});
   document.querySelectorAll('.tr-ach').forEach(function(inp){inp.oninput=function(){var ri=parseInt(this.dataset.row);ST.weekData.tracker[ri].achieve=this.value;saveWeekAndSync();};});
   document.querySelectorAll('.tr-fail').forEach(function(inp){inp.oninput=function(){var ri=parseInt(this.dataset.row);ST.weekData.tracker[ri].fail=this.value;saveWeekAndSync();};});
@@ -1772,7 +1786,14 @@ function bindWeekModal(){
   });
 
   /* Goals */
-  document.querySelectorAll('.goal-inp').forEach(function(inp){inp.oninput=function(){ST.weekData.goals[parseInt(this.dataset.idx)].text=this.value;saveWeekAndSync();};});
+  document.querySelectorAll('.goal-inp').forEach(function(inp){inp.oninput=function(){
+    var idx=parseInt(this.dataset.idx);
+    ST.weekData.goals[idx].text=this.value;
+    saveWeekAndSync();
+    /* 설정전 태그 토글 */
+    var row=this.closest('.goal-row');
+    if(row){var tag=row.querySelector('.tag');if(tag){if(this.value.trim())tag.style.display='none';else tag.style.display='';}}
+  };});
   document.querySelectorAll('.btn-goal-check').forEach(function(btn){
     btn.onclick=function(){
       var i=parseInt(this.dataset.idx);
@@ -1788,9 +1809,10 @@ function bindWeekModal(){
         row.style.background=g.completed?'rgba(195,240,215,.45)':'';
       }
       /* Update badge */
-      var done=ST.weekData.goals.filter(function(x){return x.completed;}).length;
+      var gcfg2=ST.weekData.goals.filter(function(x){return x.text&&x.text.trim();});
+      var done=gcfg2.filter(function(x){return x.completed;}).length;
       var allBadges=document.querySelectorAll('.wk-done-badge');
-      if(allBadges[0])allBadges[0].textContent=done+'/'+ST.weekData.goals.length+' 완료';
+      if(allBadges[0])allBadges[0].textContent=gcfg2.length?done+'/'+gcfg2.length+' 완료':'0/0 완료';
     };
   });
   var addGoalBtn=document.getElementById('btn-add-goal');
@@ -1819,15 +1841,17 @@ function bindWeekModal(){
           var r2=this.closest('.goal-row');
           if(r2){var i2=r2.querySelector('.goal-inp');if(i2){i2.style.textDecoration=g2.completed&&g2.text?'line-through':'none';i2.style.color=g2.completed&&g2.text?'#8878b8':'#1e3a5f';}}
           this.className='btn-goal-check '+(g2.completed?'on':'off');
-          var d2=ST.weekData.goals.filter(function(x){return x.completed;}).length;
+          var gcfg3=ST.weekData.goals.filter(function(x){return x.text&&x.text.trim();});
+          var d2=gcfg3.filter(function(x){return x.completed;}).length;
           var b2=document.querySelectorAll('.wk-done-badge');
-          if(b2[0])b2[0].textContent=d2+'/'+ST.weekData.goals.length+' 완료';
+          if(b2[0])b2[0].textContent=gcfg3.length?d2+'/'+gcfg3.length+' 완료':'0/0 완료';
         };
       });
       /* update badge count */
       var allB=document.querySelectorAll('.wk-done-badge');
-      var curDone=ST.weekData.goals.filter(function(x){return x.completed;}).length;
-      if(allB[0])allB[0].textContent=curDone+'/'+ST.weekData.goals.length+' 완료';
+      var gcfg4=ST.weekData.goals.filter(function(x){return x.text&&x.text.trim();});
+      var curDone=gcfg4.filter(function(x){return x.completed;}).length;
+      if(allB[0])allB[0].textContent=gcfg4.length?curDone+'/'+gcfg4.length+' 완료':'0/0 완료';
       card.querySelector('.goal-inp[data-idx="'+n+'"]').focus();
     }
   };
@@ -1859,20 +1883,21 @@ function updateModalProgress(){
   /* update wk-done-badges: 0=goals, 1=habits, 2=missions */
   var badges=document.querySelectorAll('.wk-done-badge');
   if(badges[0]){
-    var gd=ST.weekData.goals.filter(function(g){return g.completed;}).length;
-    badges[0].textContent=gd+'/'+ST.weekData.goals.length+' 완료';
+    var gcfg=ST.weekData.goals.filter(function(g){return g.text&&g.text.trim();});
+    var gd=gcfg.filter(function(g){return g.completed;}).length;
+    badges[0].textContent=gcfg.length ? gd+'/'+gcfg.length+' 완료' : '0/0 완료';
   }
   if(badges[1]){
-    var ht=(ST.weekData.tracker||[]).length;
-    var hd=(ST.weekData.tracker||[]).filter(function(r){
+    var hcfg=(ST.weekData.tracker||[]).filter(function(r){return r.habit&&r.habit.trim();});
+    var hd=hcfg.filter(function(r){
       return DAY_KEYS.every(function(d){var v=normDay(r.days?r.days[d]:0);return v===1||v===2;});
     }).length;
-    badges[1].textContent=hd+'/'+ht+' 완료';
+    badges[1].textContent=hcfg.length?hd+'/'+hcfg.length+' 완료':'0/0 완료';
   }
   if(badges[2]){
-    var md=0,mt=0;
-    (ST.weekData.missions||[]).forEach(function(m){mt+=m.target||0;(m.checks||[]).forEach(function(c){if(c)md++;});});
-    badges[2].textContent=md+'/'+mt+' 완료';
+    var mcfg=(ST.weekData.missions||[]).filter(function(m){return (m.name&&m.name.trim())||(m.target&&m.target>0);});
+    var mdc=mcfg.filter(function(m){var tgt=m.target||0;if(!tgt)return false;return (m.checks||[]).filter(Boolean).length>=tgt;}).length;
+    badges[2].textContent=mcfg.length?mdc+'/'+mcfg.length+' 완료':'0/0 완료';
   }
 }
 
